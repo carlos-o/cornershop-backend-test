@@ -55,9 +55,15 @@ DJANGO_APPS = [
     'django.contrib.staticfiles',
 ]
 
-LOCAL_APPS = []
+LOCAL_APPS = [
+    'app.modules.accounts',
+    'app.modules.menu',
+    'app.modules.order',
+]
 
 THIRD_PARTY_APPS = [
+    'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders'
 ]
 
@@ -259,13 +265,13 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
     ),
-    # 'EXCEPTION_HANDLER': 'store.modules.utils.exception.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'app.modules.utils.exceptions.custom_exception_handler',
     # 'DEFAULT_PERMISSION_CLASSES': (
     #    'rest_framework.permissions.IsAuthenticated',
     # ),
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': PAGE_SIZE,
-    # 'DEFAULT_PAGINATION_CLASS': 'store.modules.utils.paginations.CustomPagination',
+    'DEFAULT_PAGINATION_CLASS': 'app.modules.utils.pagination.CustomPagination',
     'PAGINATE_BY_PARAM': 'page_size',
     'DATETIME_FORMAT': "%Y-%m-%d %H:%M:%S",
 }
@@ -274,3 +280,5 @@ REST_FRAMEWORK = {
 # celery config
 CELERY_BROKER_URL = env('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND')
+
+AUTH_USER_MODEL = "accounts.User"
