@@ -1,13 +1,5 @@
-from django.shortcuts import render
-from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
-from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
-from rest_framework.generics import (
-	RetrieveUpdateDestroyAPIView,
-	ListAPIView,
-	ListCreateAPIView
-)
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework import (
 	permissions,
 	status
@@ -16,7 +8,6 @@ from rest_framework.response import Response
 from app.modules.utils.response import ResponseDetail
 from app.modules.utils.exceptions import NotFound
 from app.modules.utils.pagination import CustomPagination
-from django.core.exceptions import PermissionDenied
 from app.modules.menu import (
 	services as menu_services,
 	serializers as menu_serializers,
@@ -35,16 +26,20 @@ class MenuViewSet(ModelViewSet):
 	queryset = menu_models.Menu.objects.all().order_by('-start_date')
 
 	def get_queryset(self):
-		queryset = menu_models.MenuUser.objects.filter(user_id=self.request.user.id).order_by('-created_at')
+		queryset = menu_models.MenuUser.objects.select_related('menu').filter(user__id=self.request.user.id)
 		return queryset
 
 	def list(self, request, *args, **kwargs):
+		logger.info("list with all menu create for specific user")
 		paginator = CustomPagination()
-		context = paginator.paginate_queryset(self.queryset, request)
+		queryset = menu_models.Menu.objects.prefetch_related('menu_user').\
+			filter(menu_user__user_id=self.request.user.id).order_by('-created_at')
+		context = paginator.paginate_queryset(queryset, request)
 		serializer = self.get_serializer(context, many=True).data
 		return paginator.get_paginated_response(serializer)
 
 	def retrieve(self, request, *args, **kwargs):
+		logger.info("get specific menu")
 		instance = self.get_object()
 		serializer = self.get_serializer(instance.menu)
 		return Response(ResponseDetail().success_detail(data=serializer.data))
@@ -68,13 +63,38 @@ class MenuViewSet(ModelViewSet):
 			ResponseDetail().success_detail(code=201, data=serializer, message="menu has been created successfully"),
 			status=status.HTTP_201_CREATED)
 
+	def update(self, request, *args, **kwargs):
+		logger.info("update a specific menu")
+		instance = self.get_object()
+		try:
+			menu = menu_services.update_menu(data=request.data, menu_user=instance, user=request.user)
+		except ValueError as e:
+			return Response(
+				ResponseDetail().errors_detail(code=400, message="ValueError", error=str(e)),
+				status=status.HTTP_400_BAD_REQUEST)
+		except Exception as e:
+			logger.error("Exception: INTERNAL SERVER ERROR %s" % str(e), exc_info=True)
+			return Response(
+				ResponseDetail().errors_detail(error={"error": str(e)}),
+				status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		serializer = self.get_serializer(menu, many=False).data
+		return Response(
+			ResponseDetail().success_detail(data=serializer, message="menu has been updated successfully"),
+			status=status.HTTP_200_OK)
+
+	def destroy(self, request, *args, **kwargs):
+		logger.info("The destroy method does nothing")
+		message = 'Delete function is not offered in this path'
+		return Response(
+			ResponseDetail().errors_detail(code=403, message=message), status=status.HTTP_403_FORBIDDEN)
+
 	@action(
 		methods=['POST'], url_path='option', detail=True,
 		permission_classes=(permissions.IsAuthenticated, permissions.IsAdminUser)
 	)
-	def add_option(self, request, pk=None):
+	def create_option(self, request, pk=None):
+		logger.info("create a option to specific menu")
 		instance = self.get_object()
-		logger.info("add option to specific menu")
 		try:
 			option = menu_services.create_option_menu(data=request.data, user=request.user, menu=instance.menu)
 		except ValueError as e:
@@ -101,6 +121,7 @@ class MenuViewSet(ModelViewSet):
 		permission_classes=(permissions.IsAuthenticated, permissions.IsAdminUser)
 	)
 	def update_option(self, request, pk=None, option_id=None):
+		logger.info("update a option to specific menu")
 		instance = self.get_object()
 		logger.info("update specific option")
 		try:
@@ -130,6 +151,7 @@ class MenuViewSet(ModelViewSet):
 		permission_classes=(permissions.IsAuthenticated, permissions.IsAdminUser)
 	)
 	def delete_option(self, request, pk=None, option_id=None):
+		logger.info("delete a option to specific menu")
 		instance = self.get_object()
 		logger.info("delete specific option")
 		try:
@@ -151,50 +173,23 @@ class MenuViewSet(ModelViewSet):
 		return Response(
 			ResponseDetail().success_detail(message="options has been delete successfully"), status=status.HTTP_200_OK)
 
-	# def update(self, request, *args, **kwargs):
-	# 	instance = self.get_object()
-	# 	try:
-	# 		user = accounts_services.update(request.data, instance, request.user)
-	# 	except ValueError as e:
-	# 		return Response(ResponseDetail().errors_detail(code=400, message="ValueError", error=str(e)),
-	# 						status=status.HTTP_400_BAD_REQUEST)
-	# 	except Exception as e:
-	# 		logger.error("Exception: INTERNAL SERVER ERROR %s" % str(e), exc_info=True)
-	# 		return Response(ResponseDetail().errors_detail(error={"error": str(e)}),
-	# 						status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-	# 	serializer = self.get_serializer(user, many=False).data
-	# 	return Response(ResponseDetail().success_detail(data=serializer, message="You have edit user data correctly"),
-	# 					status=status.HTTP_200_OK)
-	#
-	# def destroy(self, request, *args, **kwargs):
-	# 	instance = self.get_object()
-	# 	try:
-	# 		accounts_services.destroy(instance, user_session=request.user)
-	# 	except ValueError as e:
-	# 		return Response(ResponseDetail().errors_detail(code=400, message="ValueError", error=str(e)),
-	# 						status=status.HTTP_400_BAD_REQUEST)
-	# 	except Exception as e:
-	# 		logger.error("Exception: INTERNAL SERVER ERROR %s" % str(e), exc_info=True)
-	# 		return Response(ResponseDetail().errors_detail(error={"error": str(e)}),
-	# 						status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-	# 	accounts_tasks.send_notification.apply_async(
-	# 		args=[instance.email, "email/deleted_account.html", 'Account deleted'], countdown=30)
-	# 	return Response(ResponseDetail().success_detail(message="The user has been delete correctly"),
-	# 					status=status.HTTP_200_OK)
-
-
-class OptionReadOnlyViewSet(ReadOnlyModelViewSet):
-	permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
-	serializer_class = menu_serializers.OptionSerializers
-	queryset = menu_models.Option.objects.all()
-
-	def list(self, request, *args, **kwargs):
-		paginator = CustomPagination()
-		context = paginator.paginate_queryset(self.queryset, request)
-		serializer = self.get_serializer(context, many=True).data
-		return paginator.get_paginated_response(serializer)
-
-	def retrieve(self, request, *args, **kwargs):
+	@action(
+		methods=['GET'], url_path='send-reminder', detail=True,
+		permission_classes=(permissions.IsAuthenticated, permissions.IsAdminUser)
+	)
+	def send_reminder(self, request, pk=None):
+		logger.info("send reminder menu to all employed")
 		instance = self.get_object()
-		serializer = self.get_serializer(instance)
-		return Response(ResponseDetail().success_detail(data=serializer.data), status=status.HTTP_200_OK)
+		if not instance.notification:
+			if instance.menu.option_menu.count() > 0:
+				menu_tasks.send_slack_notification.delay(instance.get_reminder_template(), instance.id)
+			else:
+				return Response(ResponseDetail().errors_detail(
+					code=400, message="is not possible send message, please add options first."),
+					status=status.HTTP_400_BAD_REQUEST)
+		else:
+			return Response(ResponseDetail().errors_detail(
+				code=400, message="The reminder was sent previously, it cannot be sent again."),
+				status=status.HTTP_400_BAD_REQUEST)
+		return Response(ResponseDetail().success_detail(
+			message="The reminder has sent correctly"), status=status.HTTP_200_OK)

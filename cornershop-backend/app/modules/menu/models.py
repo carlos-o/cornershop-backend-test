@@ -1,6 +1,7 @@
 from django.db import models
 from uuid import uuid4
 from app.modules.accounts.models import User
+from app.settings import WEBSITE_URL
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -30,8 +31,16 @@ class MenuUser(models.Model):
 		unique_together = ('user', 'created_at')
 		ordering = ['created_at']
 
-	def __str__(self):
-		return self.menu.name
+	def get_reminder_template(self):
+		template = ""
+		if self.menu.option_menu.count():
+			url = WEBSITE_URL + f'/menu/{self.menu.uuid}'
+			template += url
+			template += """\n\nHello! \nI share with you today's menu :) \n\n"""
+			for key, value in enumerate(self.menu.option_menu.all()):
+				template += f"Option {key+1}: {value}.\n"
+			template += "\nHave a nice day!"
+		return template
 
 
 class Option(models.Model):

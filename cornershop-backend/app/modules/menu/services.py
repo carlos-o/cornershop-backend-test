@@ -56,6 +56,36 @@ def create_menu(data: dict, user: User) -> menu_models.Menu:
 
 
 @is_active_user
+def update_menu(data: dict, menu_user: menu_models.MenuUser, user: User) -> menu_models.Menu:
+	"""
+		update menu information
+
+		:param data: menu information
+		:type data: dict
+		:param menu_user: MenuUser object
+		:type menu_user: MenuUser Model
+		:param user: user in session
+		:type user: User Model
+		:return: Menu
+		:raises: ValueError
+	"""
+	if menu_user.notification:
+		raise ValueError(json.dumps({"error": "the menu cannot be updated because it has already been sent"}))
+	validator = ValidatorMenu(data)
+	if validator.validation() is False:
+		errors = validator.mistakes()
+		for value in errors:
+			errors[value] = validator.change_value(errors[value])
+		logging.error("ERROR: in information of user %s" % str(errors), exc_info=True)
+		raise ValueError(json.dumps(errors))
+	menu_user.menu.name = data.get('name')
+	menu_user.menu.description = data.get('description')
+	menu_user.menu.start_date = data.get('start_date')
+	menu_user.menu.save()
+	return menu_user.menu
+
+
+@is_active_user
 def create_option_menu(data: dict, user: User, menu: menu_models.Menu) -> menu_models.Option:
 	"""
 		create a new option for specific menu

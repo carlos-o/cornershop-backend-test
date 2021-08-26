@@ -8,7 +8,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def validate_option(option):
+def validate_option(option: dict) -> bool:
+	"""
+		validate option data
+
+		:param option: option data
+		:type option: dict
+		:return: True
+		:raise: ValueError
+	"""
 	v = Validator()
 	schema = {'description': {'type': 'string', 'required': True, 'empty': False, 'minlength': 10, 'maxlength': 255}}
 	if not v.validate(option, schema):
