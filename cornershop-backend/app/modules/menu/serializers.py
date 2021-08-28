@@ -16,6 +16,6 @@ class MenuSerializers(serializers.Serializer):
 	options = serializers.SerializerMethodField()
 
 	def get_options(self, obj):
-		options = OptionSerializers(obj.option_menu.all(), many=True).data
+		options = OptionSerializers(obj.option_menu.all().order_by('-id'), many=True).data
 		return options
 

@@ -13,4 +13,4 @@ DATABASES = {
 	}
 }
 
-ALLOWED_HOSTS += ["127.0.0.1", 'localhost']
+ALLOWED_HOSTS += ["127.0.0.1", 'localhost', 'http://cc84-190-22-62-132.ngrok.io', 'cc84-190-22-62-132.ngrok.io']

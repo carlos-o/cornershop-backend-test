@@ -1,7 +1,7 @@
 from django.db import models
 from app.modules.accounts.models import User
 from app.modules.menu.models import Option
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 
 
 class Order(models.Model):

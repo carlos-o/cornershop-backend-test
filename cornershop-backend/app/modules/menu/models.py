@@ -2,7 +2,7 @@ from django.db import models
 from uuid import uuid4
 from app.modules.accounts.models import User
 from app.settings import WEBSITE_URL
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 
 
 class Menu(models.Model):

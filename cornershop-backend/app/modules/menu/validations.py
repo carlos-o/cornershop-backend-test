@@ -18,7 +18,7 @@ def validate_option(option: dict) -> bool:
 		:raise: ValueError
 	"""
 	v = Validator()
-	schema = {'description': {'type': 'string', 'required': True, 'empty': False, 'minlength': 10, 'maxlength': 255}}
+	schema = {'description': {'type': 'string', 'required': True, 'empty': False, 'minlength': 5, 'maxlength': 255}}
 	if not v.validate(option, schema):
 		raise ValueError(json.dumps(v.errors))
 	return True
@@ -59,10 +59,15 @@ class ValidatorMenu(Validator):
 		{'type': 'boolean'}
 		"""
 		if time and value:
+			current = datetime.now()
 			try:
-				datetime.strptime(value, '%Y-%m-%d')
+				date = datetime.strptime(value, '%Y-%m-%d')
 			except ValueError as e:
 				self._error(field, str(_("Is not a valid date")))
+			# check if the ship date is less than the current date
+			result = current - date
+			if result.days > 0:
+				self._error(field, str(_("start date cannot is less than the current date")))
 
 	def change_value(self, data: list) -> list:
 		"""

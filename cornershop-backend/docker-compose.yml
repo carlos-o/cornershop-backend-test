@@ -27,7 +27,9 @@ services:
       - 8000:8000
     image: app:django_cornershop
     container_name: django_cornershop
-    command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
     env_file:
       - ./.env
     depends_on:

@@ -36,7 +36,7 @@ def create_order(data: dict, user: User) -> Order:
 		raise ValueError(json.dumps({"optionId": "option of the menu does not exist"}))
 	menu_id = option.menu.id
 	# check if order all ready create
-	if Order.objects.filter(menu_id=menu_id).exists():
+	if Order.objects.filter(user_id=user.id, menu_id=menu_id).exists():
 		raise ValueError(json.dumps({"error": "order from specific menu all ready create"}))
 	# create order
 	try:
